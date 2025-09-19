@@ -1,0 +1,46 @@
+#!/bin/bash
+
+LIMIT=30
+
+# just a quick way to move the script to the right place
+if [ $# -ge 1 ] && [ $1 = "init" ]; then
+    read -p "Move $(basename "$0") to /usr/local/bin/?" -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+        sudo mv $SCRIPT_DIR/$(basename "$0") /usr/local/bin/
+    fi
+    exit 0
+fi
+
+if [ $# -ge 1 ] && [ $1 = "help" ]; then
+    echo "$(basename $0): quickly clone git repositories with fzf search"
+    echo "USAGE:"
+    echo "- $(basename $0) [limit]: limit is the maximum number of git repositories to load; defaults to $LIMIT."
+    exit 0
+fi
+
+if [ $# -gt 0 ]; then
+    LIMIT=$1
+fi
+
+# test that limit is a number
+re='^[0-9]+$'
+if ! [[ $LIMIT =~ $re ]]; then
+   echo "error: limit not a number" >&2
+   exit 1
+fi
+
+# get repos, fet just the names, open fzf and take output
+REPO_NAME=$((gh repo list -L $LIMIT | cut -f1 -d$'\t') | fzf);
+
+# verify selection wasn't empty
+if [ "$REPO_NAME" = "" ]; then
+    exit 1
+fi
+
+# clone it
+REPO=git@github.com:$REPO_NAME.git
+git clone $REPO
+
+

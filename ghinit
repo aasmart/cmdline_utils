@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+
+if [ $# -lt 2 ]; then
+    if [ $# -ge 1 ] && [ $1 = "help" ]; then
+        echo "$(basename $0): quickly create GitHub repositories"
+        echo -e " - init: move the script to /usr/local/bin/ so that it can be accessed locally"
+        echo
+        echo -e " - example usage: $(basename $0) test_repo --public"
+        echo -e "     creates a public repository called 'test_repo'"
+        echo -e " - example usage: $(basename $0) test_repo --private"
+        echo -e "     creates a private repository called 'test_repo'"
+        exit 0
+    fi
+
+    if [ $# = 1 ] && [ $1 = "init" ]; then
+        read -p "Move $(basename "$0") to /usr/local/bin/?" -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+            sudo mv $SCRIPT_DIR/$(basename "$0") /usr/local/bin/
+        fi
+        exit 0
+    fi
+
+    echo "Invalid number of arguments"
+    exit 1
+fi
+
+if [ ! -f ".gitignore" ]; then
+    echo "Must create a .gitignore"
+    exit 1
+fi
+
+gh repo create $@
+
+# initialize and add remote
+git init -b main
+git remote add origin git@github.com:aasmart/$1.git
+
+# try to push changes
+read -p "Create and push initial commit?" -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    git add -A
+    git commit -m "Initial commit"
+    git push --set-upstream origin main
+fi
