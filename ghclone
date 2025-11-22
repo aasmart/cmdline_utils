@@ -5,15 +5,17 @@ set -Eeuo pipefail
 LIMIT=30
 GH_USER=
 SEARCH=""
+do_fork=0
 do_search=0
 do_user_org_search=0
 
 usage() {
     echo "$(basename $0): quickly clone git repositories with fzf search"
-    echo "Usage: $(basename $0) [-l <positive int>] [-u <user or organization string>] [-s <string>]"
+    echo "Usage: $(basename $0) [-l <positive int>] [-u <user or organization string>] [-s <string>] [-f]"
     echo " -l: limit is the maximum number of git repositories to load; defaults to $LIMIT."
     echo " -u: changes the git user or organization to search for repos under (ex: -u torvalds); defaults to your account"
     echo " -s: if specified, instead of searching by user/organization, searches for repos that match the query string"
+    echo " -f: forks the cloned repo"
     echo ""
     echo "NOTE: To quickly move this script to the correct location so that this "
     echo "this script be available for use globally, run $ $(basename $0) init"
@@ -31,7 +33,7 @@ if [ $# -ge 1 ] && [ $1 = "init" ]; then
     exit 0
 fi
 
-while getopts ":l:u:s:h" o; do
+while getopts ":l:u:s:fh" o; do
     case "${o}" in
         l)
             LIMIT=${OPTARG}
@@ -44,6 +46,9 @@ while getopts ":l:u:s:h" o; do
         s)
             SEARCH=${OPTARG}
             do_search=1
+            ;;
+        f)
+            do_fork=1
             ;;
         h)
             usage
@@ -74,5 +79,9 @@ fi
 # clone it
 REPO=git@github.com:$REPO_NAME.git
 git clone $REPO
+
+if [ $do_fork = 1 ]; then
+    (cd ${REPO_NAME#*/} && gh repo fork)
+fi
 
 
