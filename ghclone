@@ -1,6 +1,18 @@
 #!/bin/bash
 
 LIMIT=30
+GH_USER=
+
+usage() {
+    echo "$(basename $0): quickly clone git repositories with fzf search"
+    echo "Usage: $(basename $0) [-l <positive int>] [-u user/organization]"
+    echo " -l: limit is the maximum number of git repositories to load; defaults to $LIMIT."
+    echo " -u: the git user or organization to search for repos under (ex: -u torvalds)"
+    echo ""
+    echo "NOTE: To quickly move this script to the correct location so that this "
+    echo "this script be available for use globally, run $ $(basename $0) init"
+    exit 0
+}
 
 # just a quick way to move the script to the right place
 if [ $# -ge 1 ] && [ $1 = "init" ]; then
@@ -13,16 +25,24 @@ if [ $# -ge 1 ] && [ $1 = "init" ]; then
     exit 0
 fi
 
-if [ $# -ge 1 ] && [ $1 = "help" ]; then
-    echo "$(basename $0): quickly clone git repositories with fzf search"
-    echo "USAGE:"
-    echo "- $(basename $0) [limit]: limit is the maximum number of git repositories to load; defaults to $LIMIT."
-    exit 0
-fi
-
-if [ $# -gt 0 ]; then
-    LIMIT=$1
-fi
+while getopts ":l:u:h" o; do
+    case "${o}" in
+        l)
+            LIMIT=${OPTARG}
+            (($LIMIT > 0)) || usage
+            ;;
+        u)
+            GH_USER=${OPTARG}
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
 
 # test that limit is a number
 re='^[0-9]+$'
@@ -32,7 +52,7 @@ if ! [[ $LIMIT =~ $re ]]; then
 fi
 
 # get repos, fet just the names, open fzf and take output
-REPO_NAME=$((gh repo list -L $LIMIT | cut -f1 -d$'\t') | fzf);
+REPO_NAME=$((gh repo list $GH_USER -L $LIMIT | cut -f1 -d$'\t') | fzf);
 
 # verify selection wasn't empty
 if [ "$REPO_NAME" = "" ]; then
